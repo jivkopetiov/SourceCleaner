@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceCleaner", "SourceCleaner\SourceCleaner.csproj", "{C22D6213-E6ED-4CEC-8344-BB7DE3562E24}"
+EndProject
+Global
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = SourceCleaner.vsmdi
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C22D6213-E6ED-4CEC-8344-BB7DE3562E24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C22D6213-E6ED-4CEC-8344-BB7DE3562E24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C22D6213-E6ED-4CEC-8344-BB7DE3562E24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C22D6213-E6ED-4CEC-8344-BB7DE3562E24}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
