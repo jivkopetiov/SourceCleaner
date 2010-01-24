@@ -20,9 +20,7 @@ namespace SourceCleaner
         public Cleaner(string directory)
         {
             if (!Directory.Exists(directory))
-            {
                 throw new DirectoryNotFoundException(directory);
-            }
 
             _directory = directory;
             Recursive = true;
