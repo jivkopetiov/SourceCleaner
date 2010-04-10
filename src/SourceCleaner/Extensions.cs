@@ -6,12 +6,12 @@ namespace SourceCleaner
     {
         public static void RemoveReadOnly(this FileSystemInfo path)
         {
-            path.Attributes &= FileAttributes.Normal;
+            path.Attributes &= ~(FileAttributes.ReadOnly);
         }
 
         public static void ApplyReadOnly(this FileSystemInfo path)
         {
-            path.Attributes &= FileAttributes.ReadOnly;
+            path.Attributes |= FileAttributes.ReadOnly;
         }
     }
 }
