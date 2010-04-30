@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <PropertyGroup>
         <Root>$(MSBuildProjectDirectory)\..</Root>
+		<OutputDir>$(Root)\build.output</OutputDir>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -12,8 +13,10 @@
 
 
     <Target Name="Build">
-
-        <MSBuild Projects="$(Root)\src\SourceCleaner\SourceCleaner.csproj" Targets="Rebuild" Properties="OutputPath=$(Root)\build.output;Configuration=$(Configuration);"></MSBuild>
+		<RemoveDir Directories="$(OutputDir)" />
+		<MakeDir Directories="$(OutputDir)" />
+        
+		<MSBuild Projects="$(Root)\src\SourceCleaner\SourceCleaner.csproj" Targets="Rebuild" Properties="OutputPath=$(OutputDir);Configuration=$(Configuration);"></MSBuild>
 
     </Target>
 
