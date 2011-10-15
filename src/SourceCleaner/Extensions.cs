@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Xml.Linq;
 
 namespace SourceCleaner
 {
@@ -12,6 +13,15 @@ namespace SourceCleaner
         public static void ApplyReadOnly(this FileSystemInfo path)
         {
             path.Attributes |= FileAttributes.ReadOnly;
+        }
+
+        public static XNamespace GetXmlns(this XDocument doc)
+        {
+            var attribute = doc.Root.Attribute("xmlns");
+            if (attribute == null)
+                return XNamespace.None;
+
+            return attribute.Value;
         }
     }
 }

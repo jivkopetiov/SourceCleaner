@@ -11,9 +11,11 @@ namespace SourceCleaner
     {
         private readonly string _directory;
 
-        private const string _markedFilesForDelete = "*.scc|*.vssscc|*.user|*.vspscc|*.suo|UpgradeLog.xml";
+        private const string _markedFilesForDelete = "*.scc|*.vssscc|*.csproj.user|*.vspscc|*.suo|UpgradeLog.xml|.DS_Store";
 
-        private const string _markedDirectoriesForDelete = "Debug|Release|bin|obj|_ReSharper*|_UpgradeLog|.svn|_svn";
+        private const string _firstBatchOfDirectoriesForDeletion = "bin|obj";
+
+        private const string _secondBatchOfMarkedDirectoriesForDeletion = "_ReSharper*|_UpgradeLog|.svn|_svn|.hg|pkg|pkgobj";
 
         private const string _sourceBindingPattern = @"\.(cs|vb)proj$|\.sln$";
 
@@ -24,6 +26,7 @@ namespace SourceCleaner
 
             _directory = directory;
             Recursive = true;
+            ShouldRemoveTfsBindings = false;
             Force = true;
         }
 
@@ -31,18 +34,25 @@ namespace SourceCleaner
 
         public bool Force { get; set; }
 
+        public bool ShouldRemoveTfsBindings { get; set; }
+
         public void CleanAll()
         {
             LogMessage("Cleaning directory " + _directory);
             LogMessage("");
 
-            int deletedDirectories = DeleteDirectories();
+            int deletedDirectories = DeleteDirectories(_firstBatchOfDirectoriesForDeletion);
+
+            deletedDirectories += DeleteDirectories(_secondBatchOfMarkedDirectoriesForDeletion);
 
             int deletedFiles = DeleteFiles();
 
             int cleanedSolutionFiles = RemoveTfsBindingFromSolutionFiles();
 
-            int cleanedProjectFiles = RemoveTfsBindingFromProjectFiles();
+            int cleanedProjectFiles = 0;
+
+            if (ShouldRemoveTfsBindings)
+                cleanedProjectFiles = RemoveTfsBindingFromProjectFiles();
 
             if (deletedDirectories + cleanedProjectFiles + cleanedSolutionFiles + deletedFiles == 0)
             {
@@ -70,17 +80,37 @@ namespace SourceCleaner
             }
         }
 
-        private int DeleteDirectories()
+        private int DeleteDirectories(string directoriesTemplate)
         {
             int counter = 0;
-            foreach (var directory in GetDirectoriesToDelete())
+            foreach (var directory in GetDirectoriesToDelete(directoriesTemplate))
             {
                 try
                 {
-                    if (Force)
+                    if (directory.Name == "bin")
                     {
-                        directory.RemoveReadOnly();
+                        bool hasProjectFile = false;
+                        foreach (var file in directory.Parent.EnumerateFiles("*.*", SearchOption.TopDirectoryOnly))
+                        {
+                            if (file.Name.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+                                file.Name.EndsWith(".vbproj", StringComparison.OrdinalIgnoreCase) ||
+                                file.Name.EndsWith(".modelproj", StringComparison.OrdinalIgnoreCase) ||
+                                file.Name.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase))
+                            {
+                                hasProjectFile = true;
+                                break;
+                            }
+                        }
+
+                        if (!hasProjectFile)
+                        {
+                            LogMessage("Skipping " + directory.FullName + " because it doesn't seem to be a temp dir");
+                            continue;
+                        }
                     }
+
+                    if (Force)
+                        directory.RemoveReadOnly();
 
                     directory.Delete(true);
                     LogSuccess(string.Format("Deleted directory {0}", directory.FullName));
@@ -94,20 +124,18 @@ namespace SourceCleaner
             return counter;
         }
 
-        private IEnumerable<DirectoryInfo> GetDirectoriesToDelete()
+        private IEnumerable<DirectoryInfo> GetDirectoriesToDelete(string directoriesTemplate)
         {
             var dirInfo = new DirectoryInfo(_directory);
 
-            foreach (string directoryPattern in _markedDirectoriesForDelete.Split('|'))
+            foreach (string directoryPattern in directoriesTemplate.Split('|'))
             {
                 var dirs = Recursive
                            ? dirInfo.GetDirectories(directoryPattern, SearchOption.AllDirectories)
                            : dirInfo.GetDirectories(directoryPattern, SearchOption.TopDirectoryOnly);
 
                 foreach (var directory in dirs)
-                {
                     yield return directory;
-                }
             }
         }
 
@@ -120,9 +148,7 @@ namespace SourceCleaner
                 try
                 {
                     if (Force)
-                    {
                         file.RemoveReadOnly();
-                    }
 
                     file.Delete();
                     LogSuccess(string.Format("Deleted file {0}", file.FullName));
@@ -162,23 +188,26 @@ namespace SourceCleaner
             {
                 file.RemoveReadOnly();
 
-                var fileAsXml = XDocument.Load(file.FullName);
-                var sourceControlNodes = fileAsXml.Descendants().Where(
+                var xmlDoc = XDocument.Load(file.FullName);
+                var ns = xmlDoc.GetXmlns();
+                var firstPropertyGroup = xmlDoc.Root.Element(ns + "PropertyGroup");
+                var nodesToDelete = firstPropertyGroup.Elements().Where(
                     node =>
-                        node.Name.LocalName == "SccProjectName" ||
-                        node.Name.LocalName == "SccLocalPath" ||
-                        node.Name.LocalName == "SccAuxPath" ||
-                        node.Name.LocalName == "SccProvider");
+                        node.Name == ns + "SccProjectName" ||
+                        node.Name == ns + "SccLocalPath" ||
+                        node.Name == ns + "SccAuxPath" ||
+                        node.Name == ns + "SccProvider").ToArray();
 
-                foreach (var node in sourceControlNodes)
+                if (nodesToDelete.Any())
                 {
-                    node.Remove();
+                    for (int nodeCounter = 0; nodeCounter < nodesToDelete.Length; nodeCounter++)
+                        nodesToDelete[nodeCounter].Remove();
+
+                    xmlDoc.Save(file.FullName);
+
+                    LogSuccess(string.Format("Removed source control bindings from {0}", file.FullName));
+                    counter++;
                 }
-
-                fileAsXml.Save(file.FullName);
-
-                LogSuccess(string.Format("Removed source control bindings from {0}", file.FullName));
-                counter++;
             }
 
             return counter;

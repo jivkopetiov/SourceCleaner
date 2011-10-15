@@ -2,4 +2,9 @@ bin/
 obj/
 build.output/
 *.suo
-*.csproj.user
+*.user
+*.manifest
+.DS_Store
+.svn
+_ReSharper*
+*.vspscc
